@@ -1,11 +1,12 @@
 #include <conio.h>
 #include <windows.h>
 #include <iostream>
+#include <cstdlib>
 #include <list>
 
 using namespace std;
 
-const int Height = 20;
+const int Height = 15;
 const int Width = 2*Height;
 int spanCounter = 0;
 int tollerence = 5;
@@ -143,12 +144,13 @@ int main(){
     spanCounter++;
 
     if (spanCounter%30 == 0){
-      plfms.insert(plfms.begin(), Platform(25, 10, 10));
+      plfms.insert(plfms.begin(), Platform(25, (rand()%(13 - 8 + 1) + 8), 10));
     }
 
     if (levelSpeed < levelMaxSpeed) levelSpeed += levelAcc;
+    cout<<"\033[H";
     for (int i=0; i<Height; i++){
-      cout<<"\33[2K"<<endl;
+      cout<<"\033[2K"<<endl;
     }
     player.draw();
     //player.update();

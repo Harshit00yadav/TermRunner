@@ -20,7 +20,7 @@ char *screen = new char[Width*Height];
 class Platform{
   private:
     float position[2];
-    float length;
+    int length;
   public:
     bool isActive;
     Platform(int x, int y, int len){
@@ -31,6 +31,9 @@ class Platform{
     }
     void draw(void);
     void update(void);
+    int getLength(void){return length;}
+    int getPositionX(void){return (int)position[0];}
+    int getPositionY(void){return (int)position[1];}
 };
 void Platform::draw(void){
   cout<<"\033["<<(int)position[1]<<";"<<(int)position[0]<<"H";
@@ -73,12 +76,13 @@ class Character{
       position[1] = y;
       velocity[0] = 0;
       velocity[1] = 0;
-      direction = 0;
+      direction = 4;
       altitude = 0;
       length = 1;
     }
-    void update(void);
+    void update(std::list<Platform>&);
     void draw(void);
+    void checkCollision(std::list<Platform>&);
     int getX(void);
     int getY(void);
     int getLength(void);
@@ -92,7 +96,7 @@ void Character::draw(void){
   if (altitude) cout<<"\u2580";
   else cout<<"\u2584";
 }
-void Character::update(void){
+void Character::update(std::list<Platform>& plfms){
   switch(direction){
     case 1:
       if (velocity[0] < 1.0f) velocity[0] += acceleration;
@@ -107,10 +111,22 @@ void Character::update(void){
       if (velocity[1] < 1.0f) velocity[1] += acceleration;
       break;
   }
+  checkCollision(plfms);
   position[0] += velocity[0];
   position[1] += velocity[1];
   if (position[1] - (int)position[1] <= 0.5) altitude = 1;
   else altitude = 0;
+}
+
+void Character::checkCollision(std::list<Platform>& plfms){
+  std::list<Platform>::iterator it = plfms.begin();
+  while(it != plfms.end()){
+    if (it->getPositionX() <= position[0] && it->getPositionX()+it->getLength() >= position[0]){
+      if ((int)position[1] == it->getPositionY()-1) velocity[1] = 0;
+      break;
+    }
+    ++it;
+  }
 }
 
 int Character::getDirection(void){
@@ -131,9 +147,10 @@ void Character::setDirection(int dir){direction = dir;}
 
 
 int main(){ 
-  Character player(5, 9);
+  Character player(15, 6);
   std::list<Platform> plfms;
-  plfms.insert(plfms.begin(), Platform(5, 10, 25));
+  plfms.insert(plfms.begin(), Platform(15, 10, 25));
+  std::list<Platform>::iterator plit = plfms.begin();
   
   SetConsoleOutputCP(CP_UTF8);
   cout<<"\033c"; //clear screen
@@ -143,8 +160,8 @@ int main(){
     Sleep(1000/25); // 25 frames per sec
     spanCounter++;
 
-    if (spanCounter%30 == 0){
-      plfms.insert(plfms.begin(), Platform(25, (rand()%(13 - 8 + 1) + 8), 10));
+    if (spanCounter%25 == 0){
+      plfms.insert(plfms.begin(), Platform(35, (rand()%(13 - 8 + 1) + 8), (rand()%(13 - 6 + 1) + 6)));
     }
 
     if (levelSpeed < levelMaxSpeed) levelSpeed += levelAcc;
@@ -155,14 +172,15 @@ int main(){
     player.draw();
     //player.update();
 
-    std::list<Platform>::iterator it = plfms.begin();
-    while (it != plfms.end()){
-      if (it->isActive){
-        it->update();
-        it->draw();
-        ++it;
-      } else plfms.erase(it++);
-    }
+    plit = plfms.begin();
+    while (plit != plfms.end()){
+      if (plit->isActive){
+        plit->update();
+        plit->draw();
+        ++plit;
+      } else plfms.erase(plit++);
+    } 
+    player.update(plfms);
 
     if (kbhit()){
       // check for key hit on keyboard

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <list>
+#include <string>
 
 using namespace std;
 
@@ -16,6 +17,25 @@ float levelAcc = 0.05f;
 bool EXIT = false;
 
 char *screen = new char[Width*Height];
+
+// Overloading * operator 
+string operator * (string a, unsigned int b) {
+    string output = "";
+    while (b--) {
+        output += a;
+    }
+    return output;
+}
+
+void clearScreenDrawFrame(){
+  string horiz = "\u2581";
+  horiz = horiz * (Width + 15 - 2);
+  cout<<"\033[H"<<endl;
+  cout<<" "<<horiz<<" "<<endl;
+  for (int i=3; i<Height; i++){
+    cout<<"\033[2K\u2595"<<"\033["<<i<<";"<<Width+15<<"H\u258F"<<endl;
+  }
+}
 
 class Platform{
   private:
@@ -159,6 +179,7 @@ int main(){
   SetConsoleOutputCP(CP_UTF8);
   cout<<"\033c"; //clear screen
   cout<<"\033[?25l"; // hide cursor
+
   
   while (!EXIT){
     Sleep(1000/25); // 25 frames per sec
@@ -169,10 +190,7 @@ int main(){
     }
 
     if (levelSpeed < levelMaxSpeed) levelSpeed += levelAcc;
-    cout<<"\033[H";
-    for (int i=0; i<Height; i++){
-      cout<<"\033[2K"<<endl;
-    }
+    clearScreenDrawFrame();
     player.draw();
     //player.update();
 

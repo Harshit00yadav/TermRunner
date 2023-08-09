@@ -37,11 +37,11 @@ class Platform{
 };
 void Platform::draw(void){
   cout<<"\033["<<(int)position[1]<<";"<<(int)position[0]<<"H";
-  if (position[0] > 1) cout<<"▕";
+  if (position[0] > 1) cout<<"\u2595";
   for (int i=0; i<(int)length; i++){
-    cout<<"▔";
+    cout<<"\u2594";
   }
-  cout<<"▏";
+  cout<<"\u258F";
 }
 void Platform::update(void){
   if (position[0] > 1) position[0] -= levelSpeed;
@@ -58,6 +58,7 @@ class Character{
     float acceleration = 0.05f;
     float position[2];
     float velocity[2];
+    float velocityLimit = 0.5f;
     int direction;
     int altitude;
     int length;
@@ -67,7 +68,7 @@ class Character{
       position[1] = Height/2;
       velocity[0] = 0;
       velocity[1] = 0;
-      direction = 0;
+      direction = 4;
       altitude = 0;
       length = 1;
     }
@@ -88,6 +89,7 @@ class Character{
     int getLength(void);
     int getAltitude(void);
     int getDirection(void);
+    void setVelocityY(float);
     void setDirection(int);
 };
 void Character::draw(void){
@@ -99,21 +101,22 @@ void Character::draw(void){
 void Character::update(std::list<Platform>& plfms){
   switch(direction){
     case 1:
-      if (velocity[0] < 1.0f) velocity[0] += acceleration;
+      if (velocity[0] < velocityLimit) velocity[0] += acceleration;
       break;
     case 2:
-      if (velocity[1] > -1.0f) velocity[1] -= acceleration;
+      if (velocity[1] > -velocityLimit) velocity[1] -= acceleration;
       break;
     case 3:
-      if (velocity[0] > -1.0f) velocity[0] -= acceleration; 
+      if (velocity[0] > -velocityLimit) velocity[0] -= acceleration; 
       break;
     case 4:
-      if (velocity[1] < 1.0f) velocity[1] += acceleration;
+      if (velocity[1] < velocityLimit) velocity[1] += acceleration;
       break;
   }
-  checkCollision(plfms);
   position[0] += velocity[0];
+  checkCollision(plfms);
   position[1] += velocity[1];
+  
   if (position[1] - (int)position[1] <= 0.5) altitude = 1;
   else altitude = 0;
 }
@@ -122,7 +125,7 @@ void Character::checkCollision(std::list<Platform>& plfms){
   std::list<Platform>::iterator it = plfms.begin();
   while(it != plfms.end()){
     if (it->getPositionX() <= position[0] && it->getPositionX()+it->getLength() >= position[0]){
-      if ((int)position[1] == it->getPositionY()-1) velocity[1] = 0;
+      if ((int)position[1] == it->getPositionY()-1 && altitude == 0 && velocity[1] > 0) velocity[1] = 0;
       break;
     }
     ++it;
@@ -142,6 +145,7 @@ int Character::getY(void){
   return position[1];
 }
 int Character::getLength(void){return length;}
+void Character::setVelocityY(float v){velocity[1] = v;}
 void Character::setDirection(int dir){direction = dir;}
 
 
@@ -160,8 +164,8 @@ int main(){
     Sleep(1000/25); // 25 frames per sec
     spanCounter++;
 
-    if (spanCounter%25 == 0){
-      plfms.insert(plfms.begin(), Platform(35, (rand()%(13 - 8 + 1) + 8), (rand()%(13 - 6 + 1) + 6)));
+    if (spanCounter%35 == 0){
+      plfms.insert(plfms.begin(), Platform(35, (rand()%(13 - 8 + 1) + 8), 10));
     }
 
     if (levelSpeed < levelMaxSpeed) levelSpeed += levelAcc;
@@ -189,25 +193,12 @@ int main(){
           EXIT = true;
           break;
         case 'w':
-          cout<<"w"<<endl;
-          player.setDirection(2);
-          break;
-        case 'a':
-          cout<<"a"<<endl;
-          player.setDirection(3);
-          break;
-        case 's':
-          cout<<"s"<<endl;
-          player.setDirection(4);
-          break;
-        case 'd':
-          cout<<"d"<<endl;
-          player.setDirection(1);
-          break;
+          player.setVelocityY(-0.55f); // <-- jump velocity = 0.55f
+          break; 
       }
     }
   }
-  cout<<"\033[4;4Hhello";
+  cout<<"\033[25;25Hhello";
   cout<<"\033[?25h"; // un-hide cursor
   return 0;
 }

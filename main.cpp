@@ -236,7 +236,7 @@ int main(){
 
     plit = plfms.begin();
     if (plit->getX() + plit->getLength() <= Width - 10){
-      plfms.push_front(Platform(Width, 4 + (rand() % 10), 15));
+      plfms.push_front(Platform(Width, 5 + (rand() % 7), 10 + (rand() % 10)));
     }
 
     while (plit != plfms.end()){

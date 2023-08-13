@@ -28,62 +28,82 @@ string operator * (string a, unsigned int b) {
     return output;
 }
 
-class Surface{
+struct sprite{
+  string texture[12*12];
+  string map;
+  int width;
+  int height;
+  void init(string m, int w, int h){
+    map = m;
+    width = w;
+    height = h;
+    map_texture(m);
+  }
+  void map_texture(string m){
+    for (int i=0; i<width*height; i++){
+      switch(m[i]){
+        case '0':
+          texture[i] = ' ';
+          break;
+        case '1':
+          texture[i] = "\u2580";
+          break;
+        case '2':
+          texture[i] = "\u2584";
+          break;
+        case '3':
+          texture[i] = "\u2588";
+          break;
+      }
+    }
+  }
+};
+
+class Display{
   private:
     int width, height;
-    bool isDisplay;
-    char array[60*30];
-    char clear_character;
+    char clear_char;
+    string array[60*30];
   public:
-    Surface(){}
-    Surface(char c, int w, int h, bool isD=false){
-      clear_character = c;
+    Display(char c, int w, int h){
       width = w;
       height = h;
-      isDisplay = isD;
-      for (int i=0; i<w*h; i++)
-        array[i] = c;
-    }
-    void init_surface(char c, int w, int h, bool isD=false){
-      width = w;
-      height = h;
-      isDisplay = isD;
+      clear_char = c;
       for (int i=0; i<w*h; i++)
         array[i] = c;
     }
 
     void render(void);
-    void blit(Surface, int, int);
+    void blit(sprite, int, int);
 
     int get_width(){return width;}
     int get_height(){return height;}
 };
 
-void Surface::render(void){
-  if (!isDisplay){
-    cout<<"can't render non Display Surface!"<<endl;
-    return;
-  }
+void Display::render(void){
   cout<<"\033[H"; // bring cursor to top of console
+  string line = "";
 
   for (int i=0; i<width*height; i++){
-    cout<<array[i];
-    array[i] = clear_character;
-    if ((i+1)%width == 0)
-      cout<<endl;
+    line += array[i];
+    array[i] = clear_char;
+    if ((i+1)%width == 0){
+      cout<<line<<endl;
+      line = "";
+    }
   }
 }
 
-void Surface::blit(Surface spr, int x, int y){
-  int dw = width - spr.get_width();
+void Display::blit(sprite s, int x, int y){
+  int dw = width - s.width;
   int i = (y * width) + x;
   int j = 0;
-  int obp = 0; /// OnBoardPixel
-  while(j < spr.get_width() * spr.get_height()){
+  short obp = 0; // on board pixel;
+  while(j < s.width * s.height){
     if (0 <= x + obp && x + obp < width)
-      array[i] = spr.array[j];
-    if ((j+1)%spr.get_width() == 0){
-      i += dw+1;
+      array[i] = s.texture[j];
+    if ((j+1)%s.width == 0){
+      i += dw + 1;
       obp = 0;
     } else {
       i++;
@@ -93,12 +113,11 @@ void Surface::blit(Surface spr, int x, int y){
   }
 }
 
-
 class Platform{
   private:
     float position[2];
     int length;
-    Surface sprite;
+    sprite spr;
   public:
     bool isActive;
     Platform(int x, int y, int len){
@@ -106,11 +125,15 @@ class Platform{
       position[1] = y;
       length = len;
       isActive = true;
-      sprite.init_surface('#', len, 3);
+      string m = "";
+      for (int i=0; i<len; i++){
+        m += '3';
+      }
+      spr.init(m , len, 1);
     }
+    sprite get_sprite(){return spr;}
     void draw(void);
     void update(void);
-    Surface get_sprite(){return sprite;}
     int getLength(void){return length;}
     int getX(void){return (int)position[0];}
     int getY(void){return (int)position[1];}
@@ -140,7 +163,8 @@ class Character{
     float velocityLimit = 1.0f;
     int direction;
     int length;
-    Surface sprite;
+    bool isColliding;
+    sprite spr;
 
   public:
     Character(float x, float y){
@@ -149,11 +173,12 @@ class Character{
       velocity[0] = 0;
       velocity[1] = 0;
       direction = 4;
-      sprite.init_surface('@', 1, 1);
+      isColliding = false;
+      spr.init("1", 1, 1);
     }
+    sprite get_sprite(){return spr;}
     void update(std::list<Platform>&);
     void checkCollision(std::list<Platform>&);
-    Surface get_sprite(){return sprite;}
     int getX(void){return position[0];}
     int getY(void){return position[1];}
     void setVelocityY(float f){velocity[1] = f;}
@@ -176,26 +201,23 @@ void Character::update(std::list<Platform>& plfms){
   position[0] += velocity[0];
   checkCollision(plfms);
   position[1] += velocity[1];
+  if (position[1]-(int)position[1] <= 0.5f && !isColliding)
+    spr.map_texture("1");
+  else 
+    spr.map_texture("2");
 }
 
 void Character::checkCollision(std::list<Platform>& plfms){
   for (Platform p : plfms){
     if (p.getX() <= position[0] && p.getX() + p.getLength() > position[0]){
-      if ((int)position[1] + sprite.get_height() == p.getY() && velocity[1] > 0)
+      if ((int)position[1] + spr.height == p.getY() && velocity[1] > 0){
         velocity[1] = 0;
+        isColliding = true;
+      } else {
+        isColliding = false;
+      }
       break;
     }
-  }
-}
-
-
-void clear(){
-  string horiz = "\u2581";
-  horiz = horiz * (Width + 15 - 2);
-  cout<<"\033[H"<<endl;
-  cout<<" "<<horiz<<" "<<endl;
-  for (int i=3; i<Height; i++){
-    cout<<"\033[2K\u2595"<<"\033["<<i<<";"<<Width+15<<"H\u258F"<<endl;
   }
 }
 
@@ -206,7 +228,7 @@ int main(){
   plfms.push_back(Platform(15, 10, 20));
   std::list<Platform>::iterator plit = plfms.begin();
 
-  Surface display('-', Width, Height, true);
+  Display display('-', Width, Height);
   
   SetConsoleOutputCP(CP_UTF8);
   cout<<"\033c"; //clear screen

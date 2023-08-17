@@ -42,17 +42,17 @@ struct sprite{
   void map_texture(string m){
     for (int i=0; i<width*height; i++){
       switch(m[i]){
-        case '0':
-          texture[i] = ' ';
-          break;
-        case '1':
+        case 'U':
           texture[i] = "\u2580";
           break;
-        case '2':
+        case 'D':
           texture[i] = "\u2584";
           break;
-        case '3':
+        case '#':
           texture[i] = "\u2588";
+          break;
+        default:
+          texture[i] = m[i];
           break;
       }
     }
@@ -64,6 +64,8 @@ class Display{
     int width, height;
     char clear_char;
     string array[60*30];
+    string horiz = "";
+
   public:
     Display(char c, int w, int h){
       width = w;
@@ -71,6 +73,8 @@ class Display{
       clear_char = c;
       for (int i=0; i<w*h; i++)
         array[i] = c;
+      for (int i=0; i<w; i++)
+        horiz += "━";
     }
 
     void render(void);
@@ -83,15 +87,16 @@ class Display{
 void Display::render(void){
   cout<<"\033[H"; // bring cursor to top of console
   string line = "";
-
+  cout<<"┏"<<horiz<<"┓"<<endl;
   for (int i=0; i<width*height; i++){
     line += array[i];
     array[i] = clear_char;
     if ((i+1)%width == 0){
-      cout<<line<<endl;
+      cout<<"┃"<<line<<"┃"<<endl;
       line = "";
     }
   }
+  cout<<"┗"<<horiz<<"┛"<<endl;
 }
 
 void Display::blit(sprite s, int x, int y){
@@ -127,7 +132,7 @@ class Platform{
       isActive = true;
       string m = "";
       for (int i=0; i<len; i++){
-        m += '3';
+        m += '#';
       }
       spr.init(m , len, 1);
     }
@@ -174,7 +179,7 @@ class Character{
       velocity[1] = 0;
       direction = 4;
       isColliding = false;
-      spr.init("1", 1, 1);
+      spr.init("U", 1, 1);
     }
     sprite get_sprite(){return spr;}
     void update(std::list<Platform>&);
@@ -202,9 +207,9 @@ void Character::update(std::list<Platform>& plfms){
   checkCollision(plfms);
   position[1] += velocity[1];
   if (position[1]-(int)position[1] <= 0.5f && !isColliding)
-    spr.map_texture("1");
+    spr.map_texture("U");
   else 
-    spr.map_texture("2");
+    spr.map_texture("D");
 }
 
 void Character::checkCollision(std::list<Platform>& plfms){
@@ -228,14 +233,18 @@ int main(){
   plfms.push_back(Platform(15, 10, 20));
   std::list<Platform>::iterator plit = plfms.begin();
 
-  Display display('-', Width, Height);
+  Display display(' ', Width, Height);
+  sprite score_board;
+  int score = 0;
+  string score_str = "score:";
+  score_board.init("score:", 6, 1);
   
   SetConsoleOutputCP(CP_UTF8);
   cout<<"\033c"; //clear screen
   cout<<"\033[?25l"; // hide cursor
 
   while (!EXIT){
-    Sleep(1000/30); // 30 frames per sec
+    Sleep(1000/60); // 30 frames per sec
     
     // ------ keyboard inputs ------------------
 
@@ -271,7 +280,8 @@ int main(){
     
     // -------------------------------------------
     // -------- render ---------------------------
-
+    
+    display.blit(score_board, Width-12, 0);
     display.blit(player.get_sprite(), player.getX(), player.getY());
     for (Platform p : plfms){
       display.blit(p.get_sprite(), p.getX(), p.getY());
